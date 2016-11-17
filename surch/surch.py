@@ -13,9 +13,11 @@
 #    * See the License for the specific language governing permissions and
 #    * limitations under the License.
 
+import os
 import sys
 
 import click
+import backtrace
 
 from . import repo
 from . import constants
@@ -64,6 +66,13 @@ remove_clone = click.option(
     help="Remove clone repo directory. "
          "When used -p and -l can't be same folder")
 
+no_sync = click.option(
+    '-N',
+    '--no-sync',
+    default=False,
+    is_flag=True,
+    help="Do not pull a repository if it is already cloned")
+
 pager = click.option(
     '--pager',
     multiple=True,
@@ -73,7 +82,6 @@ pager = click.option(
 source = click.option(
     '--source',
     multiple=True,
-    default=[],
     help='Data source plugin to use')
 
 printout = click.option('--print-result', default=False, is_flag=True)
@@ -107,9 +115,18 @@ github_password = click.option(
     help='GitHub password')
 
 
+backtrace.hook()
+
+
 @click.group(context_settings=CLICK_CONTEXT_SETTINGS)
 def main():
     pass
+
+
+@main.command(name='init')
+@click.argument('PATH', required=False)
+def init_repo(path):
+    init(path)
 
 
 @main.command(name='repo')
@@ -117,6 +134,7 @@ def main():
 @config_file
 @search_string
 @cloned_repos_path
+@no_sync
 @log_path
 @remove_clone
 @pager
@@ -131,6 +149,7 @@ def surch_repo(repo_url,
                remove,
                source,
                cloned_repos_dir,
+               no_sync,
                log,
                verbose):
     """Search a single repository
@@ -146,7 +165,8 @@ def surch_repo(repo_url,
             search_list=list(string),
             remove_cloned_dir=remove,
             print_result=print_result,
-            cloned_repo_dir=cloned_repos_dir)
+            cloned_repo_dir=cloned_repos_dir,
+            no_sync=no_sync)
     except SurchError as ex:
         sys.exit(ex)
 
@@ -252,3 +272,13 @@ def surch_user(user_name,
             cloned_repos_dir=cloned_repos_dir)
     except SurchError as ex:
         sys.exit(ex)
+
+
+def init(path):
+    path = path or constants.DOT_SURCH
+    if not os.path.isdir(path):
+        try:
+            os.makedirs(path)
+            os.makedirs(constants.CLONED_REPOS_PATH)
+        except IOError as ex:
+            sys.exit(ex)

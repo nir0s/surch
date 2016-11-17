@@ -53,5 +53,6 @@ setup(
         "tinydb==3.1.3",
         "requests==2.9.1",
         "retrying==1.3.3",
+        "gitpython==2.1.0",
     ]
 )
